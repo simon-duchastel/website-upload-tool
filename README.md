@@ -2,7 +2,9 @@
 
 This tool is used to build and upload websites built with [hugo](https://gohugo.io). At the moment it's fairly bespoke for managing the sites in the duchastel.com domain.
 
-Future work: add the capability to do SSL cert rotation in this tool.
+**Note:** This tool is intended to be used within a directory containing a hugo site.
+
+**Future work:** add the capability to do SSL cert rotation in this tool.
 
 ## Building
 
