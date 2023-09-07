@@ -57,7 +57,7 @@ func main() {
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) != 1 {
+	if len(args) == 0 {
 		fmt.Println("Error: did not specify command. Try 'help' command.")
 		return
 	}
