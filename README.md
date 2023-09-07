@@ -1,10 +1,12 @@
 # Website Upload Tool
 
-This tool
+This tool is used to build and upload websites built with [hugo]([hugo](https://gohugo.io). At the moment it's fairly bespoke for managing the sites in the duchastel.com domain.
+
+Future work: add the capability to do SSL cert rotation in this tool.
 
 ## Building
 
-Make sure you have [go](https://go.dev) and [make](https://www.gnu.org/software/make/manual/make.html) installed.
+Make sure you have [go](https://go.dev), [hugo](https://gohugo.io) and [make](https://www.gnu.org/software/make/manual/make.html) installed.
 
 You can build the tool by running `make`. That's it!
 
