@@ -606,5 +606,5 @@ const HUGO_BUILD_DIRECTORY = "public"
 
 // root of the website, ie. /home/[username]/public_html/simon.duchastel.com
 func websiteRemoteRoot(username string) string {
-	return "/home/" + username + "/public_html/" + subDomain
+	return "/home/" + username + "/public_html/" + getSupportedSubDomains()[subDomain].text
 }
