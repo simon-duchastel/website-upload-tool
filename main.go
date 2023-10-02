@@ -42,6 +42,7 @@ func getSupportedSubDomains() map[string]StringAndBool {
 	// Map of sub-domain values in CLI to path to store files on server and if we support certs renewal.
 	return map[string]StringAndBool{
 		"simon":      {"simon.duchastel.com", true},
+		"mr":         {"mr.duchastel.com", true},
 		"nicolas":    {"nicolas.duchastel.com", true},
 		"pointbolin": {"pointbolin.com", true},
 		"com":        {"duchastel.com", true},
