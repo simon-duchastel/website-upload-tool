@@ -45,6 +45,7 @@ func getSupportedSubDomains() map[string]StringAndBool {
 		"mr":         {"mr.duchastel.com", true},
 		"nicolas":    {"nicolas.duchastel.com", true},
 		"pointbolin": {"pointbolin.com", true},
+		"genealogie": {"genealogie.duchastel.com", true},
 		"com":        {"duchastel.com", true},
 		"org":        {"duchastel.org", true},
 	}
