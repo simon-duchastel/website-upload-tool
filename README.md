@@ -8,9 +8,9 @@ This tool is used to build and upload websites built with [hugo](https://gohugo.
 
 ## Building
 
-Make sure you have [go](https://go.dev), [hugo](https://gohugo.io) and [make](https://www.gnu.org/software/make/manual/make.html) installed.
+Run `make` to build. That's it!
 
-You can build the tool by running `make`. That's it!
+Make sure you have [go](https://go.dev), [hugo](https://gohugo.io) and [make](https://www.gnu.org/software/make/manual/make.html) installed.
 
 ## Running the tool
 
