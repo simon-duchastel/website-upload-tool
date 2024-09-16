@@ -49,6 +49,7 @@ func getSupportedSubDomains() map[string]StringAndBool {
 		"com":        {"duchastel.com", true},
 		"org":        {"duchastel.org", true},
 		"ferry":      {"reportferryimpact.org", true},
+		"rentals":    {"rentals.duchastel.com", true},
 	}
 }
 
