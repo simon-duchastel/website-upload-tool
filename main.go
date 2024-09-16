@@ -574,9 +574,9 @@ func uploadWebsite(remoteWebsiteRoot, siteToUploadLocation string, sshClient *ss
 		}
 
 		if !file.IsDir() && len(path) > 0 {
-			// note that we don't need to localize the file path on the remote system because we know it's unix (ie. uses '/')
-			uploadFilePath := remoteWebsiteRoot + "/" + strings.TrimPrefix(path, siteToUploadLocation+"/")
-			pathOsLocalized := filepath.FromSlash(path) // localize the path to whatever separator is used on this system
+			// ensure that the upload path is unix-style (ie. "/") and ensure the local path is OS-style (whatever system this program is running on)
+			uploadFilePath := filepath.ToSlash(remoteWebsiteRoot + "/" + strings.TrimPrefix(path, siteToUploadLocation+"/"))
+			pathOsLocalized := filepath.FromSlash(path)
 			fmt.Println("  Uploading " + path)
 			if err := uploadFile(sshClient, pathOsLocalized, uploadFilePath); err != nil {
 				fmt.Println("Error: failed to upload file '" + path + "'")
