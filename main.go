@@ -217,8 +217,8 @@ func upload() error {
 	// where the website is located on the web host
 	websiteRoot := websiteRemoteRoot(config.clientConfig.User)
 
-	fmt.Println("Copying old website from web host to " + SITE_OLD_DIRECTORY + " in case there are any issues")
-	if err = downloadOldSite(websiteRoot, SITE_OLD_DIRECTORY, client); err != nil {
+	fmt.Println("Copying old website from web host to " + siteOldDirectory() + " in case there are any issues")
+	if err = downloadOldSite(websiteRoot, siteOldDirectory(), client); err != nil {
 		return err
 	}
 
@@ -233,7 +233,7 @@ func upload() error {
 // Before each deploy we download the old website to
 // a backup folder - use this command to redeploy that.
 func rollback() error {
-	fmt.Println("Beginning rollback of old website in " + SITE_OLD_DIRECTORY)
+	fmt.Println("Beginning rollback of old website in " + siteOldDirectory())
 	fmt.Println("Connecting to web host")
 	// get the login configuration
 	config, err := getSshClientConfig()
@@ -253,7 +253,7 @@ func rollback() error {
 	websiteRoot := websiteRemoteRoot(config.clientConfig.User)
 
 	// upload the backup website
-	if err = uploadWebsite(websiteRoot, SITE_OLD_DIRECTORY, client); err != nil {
+	if err = uploadWebsite(websiteRoot, siteOldDirectory(), client); err != nil {
 		return err
 	}
 
@@ -446,14 +446,16 @@ func uploadFile(client *ssh.Client, sourceFilePath, destinationFilePath string) 
 // Create the directory [dirPath], including all transitive directories
 // which do not yet exist, on the remote host
 func createDirAllRemote(client *ssh.Client, dirPath string) error {
-	allSubDirectories := strings.Split(dirPath, "/")
+	// make sure the directory conforms to unix remote webserver file path separator
+	normalizedDirPath := filepath.ToSlash(dirPath)
+	allSubDirectories := strings.Split(normalizedDirPath, "/")
 	directoryToCreate := ""
 	for _, dir := range allSubDirectories {
 		cleanedDir := strings.TrimSpace(dir)
 		if len(cleanedDir) <= 0 {
 			continue // skip any empty strings
 		}
-		directoryToCreate = directoryToCreate + "/" + cleanedDir
+		directoryToCreate = filepath.ToSlash(directoryToCreate + "/" + cleanedDir)
 
 		// '|| echo true' ignores the exit code error and defaults to success (0) if mkdir fails
 		_, err := runRemoteCommand(client, "mkdir "+directoryToCreate+" || echo true")
@@ -484,7 +486,9 @@ func downloadRemoteFile(client *ssh.Client, remoteFileLocation, destinationFileN
 	file, err := createFileWithDirectories(destinationFileName)
 	defer file.Close()
 
-	scpClient.CopyFromRemote(context.Background(), file, remoteFileLocation)
+	// ensure that the remote file location is normalized to unix-style conventions
+	normalizedRemoteFileLocation := filepath.ToSlash(remoteFileLocation)
+	scpClient.CopyFromRemote(context.Background(), file, normalizedRemoteFileLocation)
 
 	return nil
 }
@@ -493,7 +497,9 @@ func downloadRemoteFile(client *ssh.Client, remoteFileLocation, destinationFileN
 // the remote directory specified by [remoteDirectoryPath]. Includes
 // recursive files, ie. listing remote files in /foo will list /foo/bar/baz.txt
 func listRemoteFiles(client *ssh.Client, remoteDirectoryPath string) ([]string, error) {
-	buffer, err := runRemoteCommand(client, "find "+remoteDirectoryPath+" -type f")
+	// ensure the remote directory path follows unix-style file separator conventions
+	normalizedRemoteDirectoryPath := filepath.ToSlash(remoteDirectoryPath)
+	buffer, err := runRemoteCommand(client, "find "+normalizedRemoteDirectoryPath+" -type f")
 	if err != nil {
 		return nil, err
 	}
@@ -519,15 +525,17 @@ func listRemoteFiles(client *ssh.Client, remoteDirectoryPath string) ([]string, 
 
 // Create the file if it does not exist, as well as all
 // intermediate directories if they do not exist
-func createFileWithDirectories(filePath string) (*os.File, error) {
-	err := os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+func createFileWithDirectories(targetFile string) (*os.File, error) {
+	// normalize the filepath since the system functions expect system-specific path separators
+	normalizedFilePath := filepath.FromSlash(targetFile)
+	err := os.MkdirAll(filepath.Dir(normalizedFilePath), os.ModePerm)
 	if err != nil {
-		fmt.Println("Error: unable to create directories for '" + filePath + "'")
+		fmt.Println("Error: unable to create directories for '" + targetFile + "'")
 		return nil, err
 	}
-	file, err := os.Create(filePath)
+	file, err := os.Create(normalizedFilePath)
 	if err != nil {
-		fmt.Println("Error: unable to create file '" + filePath + "'")
+		fmt.Println("Error: unable to create file '" + targetFile + "'")
 		return nil, err
 	}
 
@@ -543,7 +551,9 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 	}
 
 	// clear old website directory in preparation for storing old website
-	if err := os.RemoveAll(oldSiteDownloadLocation); err != nil {
+	// ensure the website follows the local-OS style file path separators
+	osOldSiteDownloadLocation := filepath.FromSlash(oldSiteDownloadLocation)
+	if err := os.RemoveAll(osOldSiteDownloadLocation); err != nil {
 		fmt.Println("Error: cannot clear '" + oldSiteDownloadLocation + "' directory")
 		return err
 	}
@@ -552,10 +562,14 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 		fmt.Println("  Nothing to download")
 	}
 	for _, file := range files {
-		destinationFile := oldSiteDownloadLocation + "/" + strings.TrimPrefix(file, remoteWebsiteRoot+"/")
+		unixFile := filepath.ToSlash(file)
+		unixOldSiteDownloadLocation := filepath.ToSlash(file)
+		unixRemoteWebsiteRoot := filepath.ToSlash(remoteWebsiteRoot)
+		trimmedFile := strings.TrimPrefix(unixFile, unixRemoteWebsiteRoot+"/")
+		destinationFile := unixOldSiteDownloadLocation + "/" + trimmedFile
 
 		fmt.Println("  Downloading " + file)
-		if err := downloadRemoteFile(sshClient, file, destinationFile); err != nil {
+		if err := downloadRemoteFile(sshClient, unixFile, destinationFile); err != nil {
 			return err
 		}
 	}
@@ -565,12 +579,14 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 func uploadWebsite(remoteWebsiteRoot, siteToUploadLocation string, sshClient *ssh.Client) error {
 	fmt.Println("Removing old website from web host")
 	// run 'rm -rf' to delete everything in the website directory
-	if _, err := runRemoteCommand(sshClient, "rm -rf "+remoteWebsiteRoot+"/*"); err != nil {
+	unixRemoteRoot := filepath.ToSlash(remoteWebsiteRoot)
+	if _, err := runRemoteCommand(sshClient, "rm -rf "+unixRemoteRoot+"/*"); err != nil {
 		return err
 	}
 
 	fmt.Println("Uploading website to web host")
-	if err := filepath.WalkDir(siteToUploadLocation, func(path string, file fs.DirEntry, walkErr error) error {
+	osSiteUploadLocation := filepath.FromSlash(siteToUploadLocation)
+	if err := filepath.WalkDir(osSiteUploadLocation, func(path string, file fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			fmt.Println("Error: failed to read '" + path + "'")
 			return walkErr
@@ -578,10 +594,11 @@ func uploadWebsite(remoteWebsiteRoot, siteToUploadLocation string, sshClient *ss
 
 		if !file.IsDir() && len(path) > 0 {
 			// ensure that the upload path is unix-style (ie. "/") and ensure the local path is OS-style (whatever system this program is running on)
-			uploadFilePath := filepath.ToSlash(remoteWebsiteRoot + "/" + strings.TrimPrefix(path, siteToUploadLocation+string(os.PathSeparator)))
-			pathOsLocalized := filepath.FromSlash(path)
-			fmt.Println("  Uploading " + path)
-			if err := uploadFile(sshClient, pathOsLocalized, uploadFilePath); err != nil {
+			unixPath := filepath.ToSlash(path)
+			uploadFilePath := unixRemoteRoot + "/" + strings.TrimPrefix(unixPath, osSiteUploadLocation+"/")
+			osPath := filepath.FromSlash(path)
+			fmt.Println("  Uploading " + osPath + " to " + uploadFilePath)
+			if err := uploadFile(sshClient, osPath, uploadFilePath); err != nil {
 				fmt.Println("Error: failed to upload file '" + path + "'")
 				return err
 			}
@@ -605,7 +622,9 @@ const INSECURE_MODE = "insecure"
 const READ_ONLY_FILE = "0644"
 
 // Location to store old website as backup while uploading/deploying new website
-const SITE_OLD_DIRECTORY = "bin/website-old"
+func siteOldDirectory() string {
+	return filepath.FromSlash("bin/website-old")
+}
 
 // Location of the Hugo build output directory
 const HUGO_BUILD_DIRECTORY = "public"
