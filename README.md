@@ -21,3 +21,7 @@ A few of the most useful commands are below:
 - `preview`: builds the website and previews it locally at http://localhost:1313.
 - `deploy`: builds the website and uploads it to the webhost. Requires subdomain flag, ex. `./website -subdomain simon deploy`.
 - `rollback`: if there's a mistake in the `deploy` command, you can run this command with the same subdomain flag as before to rollback the website on the webhost to what was there before.
+
+## Flags
+
+- `-dry-run`: Print verbose debugging of all actions being taken, but don't execute anything (ex. don't upload files). Useful for testing.
