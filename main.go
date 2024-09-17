@@ -55,8 +55,10 @@ func getSupportedSubDomains() map[string]StringAndBool {
 
 var command string
 var subDomain string
+var isDryRun bool
 
 func main() {
+	flag.BoolVar(&isDryRun, "dry-run", false, "When true, actions additional debug logs are printed to console but no actions are performed (ex. no files are downloaded or uploaded)")
 	flag.StringVar(&subDomain, "subdomain", "", "Directory where to put files on file server (for what sub-domain)")
 	flag.Parse()
 
@@ -435,9 +437,13 @@ func uploadFile(client *ssh.Client, sourceFilePath, destinationFilePath string) 
 	}
 
 	// copy the file to the remote host
-	if err := scpClient.CopyFromFile(context.Background(), *fileToUpload, destinationFilePath, READ_ONLY_FILE); err != nil {
-		fmt.Println("Error: failed to copy file ' " + sourceFilePath + "' to remote server")
-		return err
+	if !isDryRun {
+		if err := scpClient.CopyFromFile(context.Background(), *fileToUpload, destinationFilePath, READ_ONLY_FILE); err != nil {
+			fmt.Println("Error: failed to copy file '" + sourceFilePath + "' to remote server")
+			return err
+		}
+	} else {
+		fmt.Println("Uploading file " + sourceFilePath + " to " + destinationFilePath)
 	}
 
 	return nil
@@ -458,10 +464,14 @@ func createDirAllRemote(client *ssh.Client, dirPath string) error {
 		directoryToCreate = filepath.ToSlash(directoryToCreate + "/" + cleanedDir)
 
 		// '|| echo true' ignores the exit code error and defaults to success (0) if mkdir fails
-		_, err := runRemoteCommand(client, "mkdir "+directoryToCreate+" || echo true")
-		if err != nil {
-			fmt.Println("Error: failed to create transitive directories for file '" + dirPath + "'")
-			return err
+		if !isDryRun {
+			_, err := runRemoteCommand(client, "mkdir "+directoryToCreate+" || echo true")
+			if err != nil {
+				fmt.Println("Error: failed to create transitive directories for file '" + dirPath + "'")
+				return err
+			}
+		} else {
+			fmt.Println("Creating remote directory " + directoryToCreate)
 		}
 	}
 	return nil
@@ -553,9 +563,12 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 	// clear old website directory in preparation for storing old website
 	// ensure the website follows the local-OS style file path separators
 	osOldSiteDownloadLocation := filepath.FromSlash(oldSiteDownloadLocation)
-	if err := os.RemoveAll(osOldSiteDownloadLocation); err != nil {
-		fmt.Println("Error: cannot clear '" + oldSiteDownloadLocation + "' directory")
-		return err
+	fmt.Println("Clearing old site at " + osOldSiteDownloadLocation)
+	if !isDryRun {
+		if err := os.RemoveAll(osOldSiteDownloadLocation); err != nil {
+			fmt.Println("Error: cannot clear '" + oldSiteDownloadLocation + "' directory")
+			return err
+		}
 	}
 
 	if len(files) <= 0 {
@@ -569,19 +582,23 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 		destinationFile := unixOldSiteDownloadLocation + "/" + trimmedFile
 
 		fmt.Println("  Downloading " + file)
-		if err := downloadRemoteFile(sshClient, unixFile, destinationFile); err != nil {
-			return err
+		if !isDryRun {
+			if err := downloadRemoteFile(sshClient, unixFile, destinationFile); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
 func uploadWebsite(remoteWebsiteRoot, siteToUploadLocation string, sshClient *ssh.Client) error {
-	fmt.Println("Removing old website from web host")
 	// run 'rm -rf' to delete everything in the website directory
 	unixRemoteRoot := filepath.ToSlash(remoteWebsiteRoot)
-	if _, err := runRemoteCommand(sshClient, "rm -rf "+unixRemoteRoot+"/*"); err != nil {
-		return err
+	fmt.Println("Removing old website from web host at " + unixRemoteRoot)
+	if !isDryRun {
+		if _, err := runRemoteCommand(sshClient, "rm -rf "+unixRemoteRoot+"/*"); err != nil {
+			return err
+		}
 	}
 
 	fmt.Println("Uploading website to web host")
