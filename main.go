@@ -442,8 +442,6 @@ func uploadFile(client *ssh.Client, sourceFilePath, destinationFilePath string) 
 			fmt.Println("Error: failed to copy file '" + sourceFilePath + "' to remote server")
 			return err
 		}
-	} else {
-		fmt.Println("Uploading file " + sourceFilePath + " to " + destinationFilePath)
 	}
 
 	return nil
@@ -563,12 +561,14 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 	// clear old website directory in preparation for storing old website
 	// ensure the website follows the local-OS style file path separators
 	osOldSiteDownloadLocation := filepath.FromSlash(oldSiteDownloadLocation)
-	fmt.Println("Clearing old site at " + osOldSiteDownloadLocation)
 	if !isDryRun {
+		fmt.Println("Clearing old site")
 		if err := os.RemoveAll(osOldSiteDownloadLocation); err != nil {
 			fmt.Println("Error: cannot clear '" + oldSiteDownloadLocation + "' directory")
 			return err
 		}
+	} else {
+		fmt.Println("Clearing old site at " + osOldSiteDownloadLocation)
 	}
 
 	if len(files) <= 0 {
@@ -581,11 +581,13 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 		trimmedFile := strings.TrimPrefix(unixFile, unixRemoteWebsiteRoot+"/")
 		destinationFile := unixOldSiteDownloadLocation + "/" + trimmedFile
 
-		fmt.Println("  Downloading " + file)
 		if !isDryRun {
+			fmt.Println("  Downloading " + unixFile)
 			if err := downloadRemoteFile(sshClient, unixFile, destinationFile); err != nil {
 				return err
 			}
+		} else {
+			fmt.Println("  Downloading " + unixFile + " to " + destinationFile)
 		}
 	}
 	return nil
@@ -594,11 +596,13 @@ func downloadOldSite(remoteWebsiteRoot, oldSiteDownloadLocation string, sshClien
 func uploadWebsite(remoteWebsiteRoot, siteToUploadLocation string, sshClient *ssh.Client) error {
 	// run 'rm -rf' to delete everything in the website directory
 	unixRemoteRoot := filepath.ToSlash(remoteWebsiteRoot)
-	fmt.Println("Removing old website from web host at " + unixRemoteRoot)
 	if !isDryRun {
+		fmt.Println("Removing old website from web host")
 		if _, err := runRemoteCommand(sshClient, "rm -rf "+unixRemoteRoot+"/*"); err != nil {
 			return err
 		}
+	} else {
+		fmt.Println("Removing old website from web host at " + unixRemoteRoot)
 	}
 
 	fmt.Println("Uploading website to web host")
@@ -614,7 +618,11 @@ func uploadWebsite(remoteWebsiteRoot, siteToUploadLocation string, sshClient *ss
 			unixPath := filepath.ToSlash(path)
 			uploadFilePath := unixRemoteRoot + "/" + strings.TrimPrefix(unixPath, osSiteUploadLocation+"/")
 			osPath := filepath.FromSlash(path)
-			fmt.Println("  Uploading " + osPath + " to " + uploadFilePath)
+			if !isDryRun {
+				fmt.Println("  Uploading " + osPath)
+			} else {
+				fmt.Println("  Uploading " + osPath + " to " + uploadFilePath)
+			}
 			if err := uploadFile(sshClient, osPath, uploadFilePath); err != nil {
 				fmt.Println("Error: failed to upload file '" + path + "'")
 				return err
