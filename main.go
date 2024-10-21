@@ -41,15 +41,16 @@ func getCommandInfo() map[string]StringAndBool {
 func getSupportedSubDomains() map[string]StringAndBool {
 	// Map of sub-domain values in CLI to path to store files on server and if we support certs renewal.
 	return map[string]StringAndBool{
-		"simon":      {"simon.duchastel.com", true},
-		"mr":         {"mr.duchastel.com", true},
-		"nicolas":    {"nicolas.duchastel.com", true},
-		"pointbolin": {"pointbolin.com", true},
-		"genealogie": {"genealogie.duchastel.com", true},
-		"com":        {"duchastel.com", true},
-		"org":        {"duchastel.org", true},
-		"ferry":      {"reportferryimpact.org", true},
-		"rentals":    {"rentals.duchastel.com", true},
+		"simon":      		{"simon.duchastel.com", true},
+		"mr":         		{"mr.duchastel.com", true},
+		"nicolas":    		{"nicolas.duchastel.com", true},
+		"pointbolin": 		{"pointbolin.com", true},
+		"genealogie": 		{"genealogie.duchastel.com", true},
+		"com":        		{"duchastel.com", true},
+		"org":       	 	{"duchastel.org", true},
+		"ferry":      		{"reportferryimpact.org", true},
+		"rentals":    		{"rentals.duchastel.com", true},
+		"mtadatavisualizer":	{"mta-data-visualizer.simon.duchastel.com", true}
 	}
 }
 
